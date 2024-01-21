@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="LightPunch">
+    <output-path>$PROJECT_DIR$/out/artifacts/LightPunch</output-path>
+    <root id="archive" name="LightPunch.jar">
+      <element id="module-output" name="LightPunch" />
+    </root>
+  </artifact>
+</component>
