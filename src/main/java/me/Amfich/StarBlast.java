@@ -3,6 +3,7 @@ package me.Amfich;
 import com.projectkorra.projectkorra.GeneralMethods;
 import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
+import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.ColoredParticle;
 import com.projectkorra.projectkorra.util.DamageHandler;
@@ -10,12 +11,16 @@ import com.projectkorra.projectkorra.util.ParticleEffect;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import me.numin.spirits.ability.api.LightAbility;
@@ -25,16 +30,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-
-/**
- * Обичная способность которой можна стреляться
- * @author Amfich
- */
-public class SparkBlast extends LightAbility implements AddonAbility {
-
-    private static final double DAMAGE = 1;
-    private static final double RANGE = 25;
-    private static final long COOLDOWN = 3500;
+public class StarBlast extends LightAbility implements AddonAbility {
+    @Attribute(Attribute.DAMAGE)
+    private double DAMAGE = 1;
+    @Attribute(Attribute.RANGE)
+    private double RANGE = 25;
+    @Attribute(Attribute.RANGE)
+    private  long COOLDOWN = 3500;
 
     private Listener listener;
     private Permission perm;
@@ -44,7 +46,7 @@ public class SparkBlast extends LightAbility implements AddonAbility {
     private double distanceTravelled;
     private Set<Entity> hurt;
 
-    public SparkBlast(Player player) {
+    public StarBlast(Player player) {
         super(player);
 
         location = player.getEyeLocation();
@@ -54,16 +56,25 @@ public class SparkBlast extends LightAbility implements AddonAbility {
         hurt = new HashSet<>();
 
         bPlayer.addCooldown(this);
-
+        this.COOLDOWN = ConfigManager.getConfig().getLong("ExtraAbilities.Amfich.Spirit.LightSpirit.StarBlast.Cooldown");
+        this.DAMAGE = ConfigManager.getConfig().getDouble("ExtraAbilities.Amfich.Spirit.LightSpirit.StarBlast.Damage");
+        this.RANGE = ConfigManager.getConfig().getDouble("ExtraAbilities.Amfich.Spirit.LightSpirit.StarBlast.Range");
         start();
     }
 
     @Override
     public void progress() {
+        if(!bPlayer.isOnline()) {
+            remove();
+        }
+        if(player.isDead()) {
+            remove();
+        }
         if (!bPlayer.canBendIgnoreBindsCooldowns(this)) {
             remove();
             return;
         }
+
 
         if (location.getBlock().getType().isSolid()) {
             remove();
@@ -75,12 +86,26 @@ public class SparkBlast extends LightAbility implements AddonAbility {
             return;
         }
 
-        affectTargets();
+        StarEffect();
         new ColoredParticle(Color.fromRGB(225, 221, 0), 2.13F).display(this.location, 4, (float) Math.random() / 2, (float) Math.random() / 2, (float) Math.random()  / 2);
         ParticleEffect.END_ROD.display(this.location, 3, 0.5, 0.5, 0.5, 0f);
         ParticleEffect.FLASH.display(this.location, 1, 0.5, 0.5, 0.5, 0f);
 
         player.getLocation().getWorld().playSound(location, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 0.7F, 1.3F);
+        for (Entity entity : GeneralMethods.getEntitiesAroundPoint(location, 2)) {
+            if (entity instanceof LivingEntity && entity.getEntityId() != player.getEntityId() && !(entity instanceof ArmorStand)) {
+                ((LivingEntity) entity).addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 1));
+                if(entity.hasPermission("bending.darkspirit")) {
+                    DamageHandler.damageEntity(entity, 2.5, this);
+                }
+                else {
+                    if (!hurt.contains(entity)) {
+                        DamageHandler.damageEntity(entity, DAMAGE, this);
+                        hurt.add(entity);
+                    }
+                }
+            }
+        }
 
         if (ThreadLocalRandom.current().nextInt(6) == 0) {
 
@@ -90,7 +115,7 @@ public class SparkBlast extends LightAbility implements AddonAbility {
         distanceTravelled += direction.length();
     }
 
-    private void affectTargets() {
+    private void StarEffect() {
         List<Entity> targets = GeneralMethods.getEntitiesAroundPoint(location, 1);
         for (Entity target : targets) {
             if (target.getUniqueId() == player.getUniqueId()) {
@@ -100,7 +125,6 @@ public class SparkBlast extends LightAbility implements AddonAbility {
             if (!hurt.contains(target)) {
                 DamageHandler.damageEntity(target, DAMAGE, this);
                 hurt.add(target);
-
             }
         }
     }
@@ -143,15 +167,15 @@ public class SparkBlast extends LightAbility implements AddonAbility {
 
     @Override
     public void load() {
-        listener = new SparkBlastListener();
+        listener = new StarBlastListener();
         ProjectKorra.plugin.getServer().getPluginManager().registerEvents(listener, ProjectKorra.plugin);
-        perm = new Permission("bending.ability.SparkBlast");
+        perm = new Permission("bending.ability.StarBlast");
         perm.setDefault(PermissionDefault.OP);
         ProjectKorra.plugin.getServer().getPluginManager().addPermission(perm);
 
-        ConfigManager.getConfig().addDefault("ExtraAbilities.Amfich.Spirit.LightSpirit.SparkBlast.Damage", 1);
-        ConfigManager.getConfig().addDefault("ExtraAbilities.Amfich.Spirit.LightSpirit.SparkBlast.Cooldown", 3500);
-        ConfigManager.getConfig().addDefault("ExtraAbilities.Amfich.Spirit.LightSpirit.SparkBlast.Range", 25);
+        ConfigManager.getConfig().addDefault("ExtraAbilities.Amfich.Spirit.LightSpirit.StarBlast.Damage", 1);
+        ConfigManager.getConfig().addDefault("ExtraAbilities.Amfich.Spirit.LightSpirit.StarBlast.Cooldown", 3500);
+        ConfigManager.getConfig().addDefault("ExtraAbilities.Amfich.Spirit.LightSpirit.StarBlast.Range", 25);
 
     }
 
@@ -173,15 +197,16 @@ public class SparkBlast extends LightAbility implements AddonAbility {
 
     @Override
     public String getName() {
-        return "SparkBlast";
+        return "StarBlast";
     }
     @Override
     public String getDescription() {
-        return "Спомощью энергии света вы можете призивать звезди на своих врагов!";
+        return "Using the energy of light, you can summon stars to your enemies!";
+
 
     }
     @Override
     public String getInstructions() {
-        return "ЛКМ";
+        return "Left_Click";
     }
 }

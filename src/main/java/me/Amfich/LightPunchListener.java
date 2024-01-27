@@ -7,9 +7,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.entity.Player;
-/**
- * @author Amfich
- */
+
 public class LightPunchListener implements Listener {
 
     @EventHandler

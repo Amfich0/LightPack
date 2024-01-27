@@ -7,10 +7,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.entity.Player;
-/**
- * @author Amfich
- */
-public class SparkBlastListener implements Listener {
+
+public class StarBlastListener implements Listener {
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
@@ -21,8 +19,8 @@ public class SparkBlastListener implements Listener {
         BendingPlayer bPlayer = BendingPlayer.getBendingPlayer(player);
         if (bPlayer == null) return;
 
-        if (bPlayer.canBend(CoreAbility.getAbility(SparkBlast.class))) {
-            new SparkBlast(player);
+        if (bPlayer.canBend(CoreAbility.getAbility(StarBlast.class))) {
+            new StarBlast(player);
         }
     }
 }

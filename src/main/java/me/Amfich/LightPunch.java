@@ -3,6 +3,7 @@ package me.Amfich;
 import com.projectkorra.projectkorra.GeneralMethods;
 import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
+import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.ColoredParticle;
 import com.projectkorra.projectkorra.util.DamageHandler;
@@ -10,12 +11,16 @@ import com.projectkorra.projectkorra.util.ParticleEffect;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import me.numin.spirits.ability.api.LightAbility;
@@ -25,16 +30,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-
-/**
- * Обичная способность которой можна стреляться
- * @author Amfich
- */
 public class LightPunch extends LightAbility implements AddonAbility {
-
-    private static final double DAMAGE = 1.5;
-    private static final double RANGE = 18;
-    private static final long COOLDOWN = 4000;
+    @Attribute(Attribute.DAMAGE)
+    private double DAMAGE = 1.5;
+    @Attribute(Attribute.RANGE)
+    private double RANGE = 18;
+    @Attribute(Attribute.COOLDOWN)
+    private long COOLDOWN = 4000;
 
     private Listener listener;
     private Permission perm;
@@ -54,41 +56,57 @@ public class LightPunch extends LightAbility implements AddonAbility {
         hurt = new HashSet<>();
 
         bPlayer.addCooldown(this);
-
+          this.COOLDOWN = ConfigManager.getConfig().getLong("ExtraAbilities.Amfich.Spirit.LightSpirit.LightPunch.Cooldown");
+          this.DAMAGE = ConfigManager.getConfig().getDouble("ExtraAbilities.Amfich.Spirit.LightSpirit.LightPunch.Damage");
+          this.RANGE = ConfigManager.getConfig().getDouble("ExtraAbilities.Amfich.Spirit.LightSpirit.LightPunch.Range");
         start();
     }
 
     @Override
     public void progress() {
+        if(!bPlayer.isOnline()) {
+            remove();
+        }
+        if(player.isDead()) {
+            remove();
+        }
         if (!bPlayer.canBendIgnoreBindsCooldowns(this)) {
             remove();
             return;
         }
+
 
         if (location.getBlock().getType().isSolid()) {
             remove();
             return;
         }
 
-        if (distanceTravelled > RANGE) {
+        if (distanceTravelled > this.RANGE) {
             remove();
             return;
         }
 
-        affectTargets();
+        Effect();
         new ColoredParticle(Color.fromRGB(225, 221, 0), 1.86F).display(this.location, 4, (float) Math.random() / 2, (float) Math.random() / 2, (float) Math.random()  / 2);
         ParticleEffect.END_ROD.display(this.location, 3, 0.5, 0.5, 0.5, 0f);
 
         player.getLocation().getWorld().playSound(location, Sound.ENTITY_EVOKER_CAST_SPELL, 0.7F, 1.3F);
         if (ThreadLocalRandom.current().nextInt(6) == 0) {
-
+            for (Entity entity : GeneralMethods.getEntitiesAroundPoint(location, 2)) {
+                if (entity instanceof LivingEntity && entity.getEntityId() != player.getEntityId() && !(entity instanceof ArmorStand)) {
+                    ((LivingEntity) entity).addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 1));
+                     if(entity.hasPermission("bending.darkspirit")) {
+                            DamageHandler.damageEntity(entity, 2, this);
+                    }
+                }
+            }
         }
 
         location.add(direction);
         distanceTravelled += direction.length();
     }
 
-    private void affectTargets() {
+    private void Effect() {
         List<Entity> targets = GeneralMethods.getEntitiesAroundPoint(location, 1);
         for (Entity target : targets) {
             if (target.getUniqueId() == player.getUniqueId()) {
@@ -96,7 +114,7 @@ public class LightPunch extends LightAbility implements AddonAbility {
             }
 
             if (!hurt.contains(target)) {
-                DamageHandler.damageEntity(target, DAMAGE, this);
+                DamageHandler.damageEntity(target, this.DAMAGE, this);
                 hurt.add(target);
 
             }
@@ -136,7 +154,7 @@ public class LightPunch extends LightAbility implements AddonAbility {
 
     @Override
     public long getCooldown() {
-        return COOLDOWN;
+        return this.COOLDOWN;
     }
 
     @Override
@@ -175,11 +193,11 @@ public class LightPunch extends LightAbility implements AddonAbility {
     }
     @Override
     public String getDescription() {
-        return "Спомощью этой способности вы можете стрелять в игроков или мобов энергией света!";
+        return "With this ability you can shoot light energy at players or mobs!";
 
     }
     @Override
     public String getInstructions() {
-          return "ЛКМ";
+          return "Left_Click";
     }
 }
